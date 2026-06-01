@@ -1,9 +1,7 @@
-<p align="center">
-  <img src="assets/tray-icon@2x.png" width="80" alt="Hermes IDE">
-</p>
+
 
 <p align="center">
-  <img src="assets/hermes-icon.svg" width="48" alt="Hermes IDE Icon">
+  <img src="assets/hermes-icon.svg" width="64" alt="Hermes IDE Icon">
 </p>
 
 <h1 align="center">Hermes IDE</h1>
