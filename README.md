@@ -4,6 +4,9 @@
 
 <h1 align="center">Hermes IDE</h1>
 
+<img width="1285" height="814" alt="Captura de Tela 2026-06-01 às 17 45 00" src="https://github.com/user-attachments/assets/b9b51523-6510-4aba-8499-599f9b2dde20" />
+
+
 <p align="center">
   <strong>macOS menu bar IDE powered by Hermes Agent</strong><br>
   <em>Editor + Terminal + AI Chat — one shortcut away</em>
