@@ -666,11 +666,22 @@
     .terminal-resize-handle:hover { background: var(--accent); }
 
     #terminal-container {
-      flex: 1; padding: 4px 0;
+      flex: 1; padding: 0;
     }
 
     #terminal-container .xterm {
       height: 100%;
+    }
+    /* Make xterm background transparent so vibrancy shows */
+    #terminal-container .xterm,
+    #terminal-container .xterm .xterm-viewport,
+    #terminal-container .xterm canvas,
+    #terminal-container .xterm-screen,
+    #terminal-container canvas.xterm-text-layer,
+    #terminal-container canvas.xterm-cursor-layer,
+    #terminal-container canvas.xterm-selection-layer {
+      background: transparent !important;
+      background-color: transparent !important;
     }
 
     /* ─── Welcome ─── */
@@ -679,7 +690,14 @@
       align-items: center; justify-content: center;
       color: var(--text-dim); gap: 16px;
     }
-    .welcome-logo { font-size: 64px; margin-bottom: 8px; }
+    .welcome-logo {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: linear-gradient(135deg, #ff3b30, #ff6b6b);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 20px rgba(255,59,48,0.3);
+      margin-bottom: 12px;
+    }
+    .welcome-logo svg { width: 36px; height: 36px; }
     .welcome h1 { font-size: 28px; color: var(--text-bright); font-weight: 300; }
     .welcome h1 span { color: var(--accent); font-weight: 600; }
     .welcome p { font-size: 14px; max-width: 400px; text-align: center; line-height: 1.6; }
@@ -700,19 +718,20 @@
     }
 
     .chat-header {
-      padding: 12px 16px; border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; gap: 10px;
+      padding: 14px 16px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px;
     }
 
     .chat-header .hermes-avatar {
-      width: 28px; height: 28px; border-radius: 6px;
-      background: var(--accent); display: flex;
-      align-items: center; justify-content: center;
-      font-size: 14px; font-weight: 700; color: white;
+      width: 32px; height: 32px; border-radius: 50%;
+      background: linear-gradient(135deg, #ff3b30, #ff6b6b);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 8px rgba(255,59,48,0.3);
     }
+    .chat-header .hermes-avatar svg { width: 18px; height: 18px; }
 
-    .chat-header-info h3 { font-size: 14px; font-weight: 600; color: var(--text-bright); }
-    .chat-header-info span { font-size: 11px; color: var(--green); }
+    .chat-header-info h3 { font-size: 14px; font-weight: 600; color: var(--text-bright); letter-spacing: -0.01em; }
+    .chat-header-info span { font-size: 11px; color: var(--green); font-weight: 500; }
 
     .chat-messages {
       flex: 1; overflow-y: auto; padding: 16px;
@@ -729,12 +748,16 @@
     @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
     .chat-msg .avatar {
-      width: 30px; height: 30px; border-radius: 8px;
+      width: 28px; height: 28px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      font-size: 16px; flex-shrink: 0;
+      flex-shrink: 0; overflow: hidden;
     }
-    .chat-msg.user .avatar { background: var(--bg-tertiary); color: var(--text); border: 1px solid var(--border); }
-    .chat-msg.assistant .avatar { background: var(--accent); color: white; }
+    .chat-msg .avatar svg { width: 16px; height: 16px; }
+    .chat-msg.user .avatar { background: var(--bg-tertiary); border: 1px solid var(--border); }
+    .chat-msg.assistant .avatar {
+      background: linear-gradient(135deg, #ff3b30, #ff6b6b);
+      box-shadow: 0 1px 4px rgba(255,59,48,0.25);
+    }
     .chat-msg.user .bubble {
       background: var(--bg-tertiary); border-radius: var(--radius-md);
       padding: 10px 14px; box-shadow: var(--shadow-sm);
@@ -845,20 +868,40 @@
 
     /* ─── Thinking indicator ─── */
     .thinking {
-      display: flex; align-items: center; gap: 8px;
-      padding: 8px 12px; color: var(--text-dim); font-size: 13px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 0; animation: fadeIn 0.2s ease;
     }
+    .thinking-dots { display: flex; gap: 4px; }
     .thinking-dots span {
-      display: inline-block; width: 4px; height: 4px;
-      border-radius: 50%; background: var(--accent);
-      animation: dotPulse 1.4s ease-in-out infinite; margin: 0 1px;
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--text-dim); animation: pulse 1.4s ease-in-out infinite;
     }
     .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
     .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes dotPulse {
-      0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
-      40% { opacity: 1; transform: scale(1); }
+    @keyframes pulse { 0%,80%,100% { opacity: 0.3; } 40% { opacity: 1; } }
+
+    /* Thinking/Reasoning block */
+    .thinking-block {
+      margin-top: 8px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); overflow: hidden;
     }
+    .thinking-block-header {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 10px; font-size: 11px; color: var(--text-dim);
+      cursor: pointer; background: var(--bg-hover);
+      font-weight: 500; letter-spacing: 0.02em;
+      user-select: none;
+    }
+    .thinking-block-header:hover { background: var(--bg-active); }
+    .thinking-block-header .arrow { transition: transform 0.15s; font-size: 9px; }
+    .thinking-block-header .arrow.open { transform: rotate(90deg); }
+    .thinking-block-content {
+      padding: 8px 10px; font-size: 12px; color: var(--text-dim);
+      font-family: 'SF Mono', monospace; line-height: 1.6;
+      max-height: 200px; overflow-y: auto; display: none;
+      border-top: 1px solid var(--border);
+    }
+    .thinking-block-content.open { display: block; }
 
     .hidden { display: none !important; }
 
@@ -1006,15 +1049,18 @@
       <div class="editor-terminal-wrapper">
         <!-- Welcome screen -->
         <div class="welcome" id="welcome">
-          <div class="welcome-logo">Ἑ</div>
+          <div class="welcome-logo"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg></div>
           <h1><span>Hermes</span> IDE</h1>
           <p>Seu agente de IA como IDE. Abra uma pasta, edite código, e converse comigo pelo painel lateral.</p>
           <div class="welcome-shortcuts">
             <div class="welcome-shortcut"><kbd>⇧ Space</kbd><span>Abrir/Fechar Hermes IDE</span></div>
             <div class="welcome-shortcut"><kbd>⌘ O</kbd><span>Abrir Pasta</span></div>
             <div class="welcome-shortcut"><kbd>⌘ S</kbd><span>Salvar Arquivo</span></div>
-            <div class="welcome-shortcut"><kbd>⌘ `</kbd><span>Toggle Terminal</span></div>
-            <div class="welcome-shortcut"><kbd>⌘ Enter</kbd><span>Enviar mensagem no chat</span></div>
+            <div class="welcome-shortcut"><kbd>⌘ J</kbd><span>Toggle Terminal</span></div>
+            <div class="welcome-shortcut"><kbd>Enter</kbd><span>Enviar mensagem no chat</span></div>
+            <div class="welcome-shortcut"><kbd>⌘ F</kbd><span>Buscar no Explorer</span></div>
+            <div class="welcome-shortcut"><kbd>⌘ ⇧ P</kbd><span>Command Palette</span></div>
+            <div class="welcome-shortcut"><kbd>⌘ ,</kbd><span>Settings</span></div>
           </div>
         </div>
 
@@ -1044,7 +1090,7 @@
     <!-- Chat Panel -->
     <div class="chat-panel">
       <div class="chat-header">
-        <div class="hermes-avatar">H</div>
+        <div class="hermes-avatar"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg></div>
         <div class="chat-header-info">
           <h3>Hermes Agent</h3>
           <span>● Online</span>
@@ -1248,6 +1294,11 @@
       refreshGit();
       // Start file watcher
       hermesIDE.fs.watch(folderPath);
+      // New chat session for new folder
+      await hermesIDE.hermes.reset();
+      const chatMessages = document.getElementById('chat-messages');
+      chatMessages.innerHTML = '';
+      addChatMessage('assistant', `Pasta aberta: **${folderPath.split('/').pop()}** 📂\n\nMe pergunte qualquer coisa sobre este projeto!`);
     });
 
     // File watcher: only refresh git, NOT the tree (preserves folder state)
@@ -1945,7 +1996,11 @@
 
       const avatar = document.createElement('div');
       avatar.className = 'avatar';
-      avatar.textContent = role === 'user' ? '👤' : 'H';
+      if (role === 'user') {
+        avatar.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+      } else {
+        avatar.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>';
+      }
 
       const bubble = document.createElement('div');
       bubble.className = 'bubble';
@@ -1991,7 +2046,7 @@
 
       const avatar = document.createElement('div');
       avatar.className = 'avatar';
-      avatar.textContent = 'H';
+      avatar.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>';
 
       const bubble = document.createElement('div');
       bubble.className = 'bubble';
@@ -2015,7 +2070,32 @@
 
     function finalizeStreamingMessage(bubble, text) {
       bubble.parentElement.classList.remove('streaming');
-      bubble.innerHTML = renderMarkdown(text);
+
+      // Extract thinking/reasoning blocks
+      let mainText = text;
+      let thinkingText = '';
+      const thinkMatch = text.match(/<(?:think|thinking|reasoning)>([\s\S]*?)<\/(?:think|thinking|reasoning)>/i);
+      if (thinkMatch) {
+        thinkingText = thinkMatch[1].trim();
+        mainText = text.replace(thinkMatch[0], '').trim();
+      }
+
+      bubble.innerHTML = renderMarkdown(mainText || text);
+
+      // Add thinking block if present
+      if (thinkingText) {
+        const block = document.createElement('div');
+        block.className = 'thinking-block';
+        block.innerHTML = `
+          <div class="thinking-block-header" onclick="this.querySelector('.arrow').classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+            <span class="arrow">▶</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/></svg>
+            <span>Reasoning</span>
+          </div>
+          <div class="thinking-block-content">${escapeHtml(thinkingText)}</div>
+        `;
+        bubble.appendChild(block);
+      }
 
       // Apply syntax highlighting
       bubble.querySelectorAll('pre code').forEach((block) => {
@@ -2073,12 +2153,11 @@
       const thinking = document.createElement('div');
       thinking.className = 'thinking';
       thinking.id = id;
-      const face = hermesFace();
       const kaomoji = randomKaomoji();
       thinking.innerHTML = `
-        <div class="avatar" style="width:30px;height:30px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:white;">H</div>
+        <div class="avatar" style="background:linear-gradient(135deg,#ff3b30,#ff6b6b);box-shadow:0 1px 4px rgba(255,59,48,0.25)"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg></div>
         <div class="thinking-dots"><span></span><span></span><span></span></div>
-        <span>${kaomoji}</span>
+        <span style="font-size:12px;color:var(--text-dim)">${kaomoji}</span>
       `;
       container.appendChild(thinking);
       container.scrollTop = container.scrollHeight;
