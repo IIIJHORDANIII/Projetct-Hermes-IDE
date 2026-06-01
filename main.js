@@ -135,7 +135,7 @@ ipcMain.handle('fs:readDir', async (event, dirPath) => {
   try {
     const entries = fs.readdirSync(dirPath, { withFileTypes: true });
     return entries
-      .filter(e => !e.name.startsWith('.') || e.name === '.env')
+      .filter(e => e.name !== '.git' && e.name !== 'node_modules')
       .map(e => ({
         name: e.name,
         path: path.join(dirPath, e.name),
