@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Electron
+dist/
+out/
+*.dmg
+*.zip
+
+# Logs
+*.log
+npm-debug.log*
+
+# Env
+.env
+.env.local
+
+# Backup
+*.bak
