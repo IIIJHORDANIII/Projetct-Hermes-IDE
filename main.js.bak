@@ -1,0 +1,504 @@
+const { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, dialog, screen } = require('electron');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+const { spawn } = require('child_process');
+const pty = require('node-pty');
+
+let tray = null;
+let mainWindow = null;
+let isVisible = false;
+
+// ─── Window dimensions ───
+const WINDOW_WIDTH = 1200;
+const WINDOW_HEIGHT = 750;
+
+function createWindow() {
+  const { width: screenW, height: screenH } = screen.getPrimaryDisplay().workAreaSize;
+
+  mainWindow = new BrowserWindow({
+    width: WINDOW_WIDTH,
+    height: WINDOW_HEIGHT,
+    x: Math.round((screenW - WINDOW_WIDTH) / 2),
+    y: Math.round((screenH - WINDOW_HEIGHT) / 2),
+    show: false,
+    vibrancy: 'under-window',
+    visualEffectState: 'active',
+    transparent: false,
+    resizable: true,
+    backgroundColor: '#0a0a0a',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false
+    }
+  });
+
+  mainWindow.loadFile('index.html');
+
+  // Capture renderer console output
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    const prefix = ['', 'WARN', 'ERROR', 'INFO'][level] || 'LOG';
+    console.log(`[Renderer ${prefix}] ${message} (${sourceId}:${line})`);
+  });
+
+  // Open DevTools in development
+  if (process.argv.includes('--dev')) {
+    mainWindow.webContents.openDevTools({ mode: 'bottom' });
+  }
+
+  mainWindow.on('blur', () => {
+    // Don't hide on blur — user might click outside intentionally
+  });
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+}
+
+function toggleWindow() {
+  if (!mainWindow) {
+    createWindow();
+    mainWindow.once('ready-to-show', () => {
+      mainWindow.show();
+      isVisible = true;
+    });
+    return;
+  }
+
+  if (isVisible) {
+    mainWindow.hide();
+    isVisible = false;
+  } else {
+    mainWindow.show();
+    mainWindow.focus();
+    isVisible = true;
+  }
+}
+
+function createTray() {
+  const iconPath = path.join(__dirname, 'assets', 'tray-icon.png');
+  const { nativeImage } = require('electron');
+
+  let icon;
+  if (fs.existsSync(iconPath)) {
+    icon = nativeImage.createFromPath(iconPath);
+    icon.setTemplateImage(true); // macOS adapts to dark/light menu bar
+  } else {
+    icon = nativeImage.createEmpty();
+  }
+
+  tray = new Tray(icon);
+  tray.setToolTip('Hermes IDE — ⇧Space');
+
+  const contextMenu = Menu.buildFromTemplate([
+    { label: 'Show Hermes IDE', click: () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); isVisible = true; } else { toggleWindow(); } } },
+    { type: 'separator' },
+    { label: 'Open Folder...', click: () => openFolderDialog() },
+    { type: 'separator' },
+    { label: 'Quit', click: () => { app.quit(); } }
+  ]);
+
+  tray.setContextMenu(contextMenu);
+  tray.on('click', () => toggleWindow());
+}
+
+async function openFolderDialog() {
+  if (!mainWindow) return;
+  // Ensure window is focused before showing dialog
+  if (!mainWindow.isVisible()) {
+    mainWindow.show();
+  }
+  mainWindow.focus();
+  
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory'],
+    title: 'Abrir Pasta'
+  });
+  if (!result.canceled && result.filePaths.length > 0) {
+    mainWindow.webContents.send('open-folder', result.filePaths[0]);
+  }
+}
+
+// ─── IPC Handlers ───
+
+// File system operations
+ipcMain.handle('fs:readDir', async (event, dirPath) => {
+  try {
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+    return entries
+      .filter(e => !e.name.startsWith('.') || e.name === '.env')
+      .map(e => ({
+        name: e.name,
+        path: path.join(dirPath, e.name),
+        isDirectory: e.isDirectory(),
+        isFile: e.isFile()
+      }))
+      .sort((a, b) => {
+        if (a.isDirectory && !b.isDirectory) return -1;
+        if (!a.isDirectory && b.isDirectory) return 1;
+        return a.name.localeCompare(b.name);
+      });
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle('fs:readFile', async (event, filePath) => {
+  try {
+    return fs.readFileSync(filePath, 'utf-8');
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle('fs:writeFile', async (event, filePath, content) => {
+  try {
+    fs.writeFileSync(filePath, content, 'utf-8');
+    return { success: true };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle('fs:stat', async (event, filePath) => {
+  try {
+    const stat = fs.statSync(filePath);
+    return {
+      size: stat.size,
+      modified: stat.mtime.toISOString(),
+      isDirectory: stat.isDirectory(),
+      isFile: stat.isFile()
+    };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle('fs:getHomeDir', () => os.homedir());
+
+ipcMain.handle('dialog:openFolder', async () => {
+  console.log('[DEBUG] dialog:openFolder handler called');
+  try {
+    const result = await openFolderDialog();
+    console.log('[DEBUG] dialog result:', result);
+    return result;
+  } catch (err) {
+    console.error('[DEBUG] dialog error:', err);
+    return { error: err.message };
+  }
+});
+
+// ─── File Search ───
+const IGNORE_DIRS = new Set([
+  'node_modules', '.git', '__pycache__', '.next', '.nuxt', 'dist', 'build',
+  '.cache', '.vscode', '.idea', 'venv', '.venv', 'env', '.tox',
+  'coverage', '.pytest_cache', '.mypy_cache', 'target',
+]);
+
+const BINARY_EXTS = new Set([
+  'png', 'jpg', 'jpeg', 'gif', 'bmp', 'ico', 'svg', 'webp',
+  'mp3', 'mp4', 'wav', 'avi', 'mov', 'mkv', 'flv',
+  'zip', 'tar', 'gz', 'rar', '7z', 'bz2',
+  'exe', 'dll', 'so', 'dylib', 'o', 'a',
+  'pdf', 'doc', 'docx', 'xls', 'xlsx',
+  'woff', 'woff2', 'ttf', 'eot',
+]);
+
+function searchInDir(dirPath, query, maxResults = 200) {
+  const results = [];
+  const lowerQuery = query.toLowerCase();
+  const isRegex = query.startsWith('/') && query.endsWith('/');
+  let regex = null;
+
+  if (isRegex) {
+    try {
+      regex = new RegExp(query.slice(1, -1), 'gi');
+    } catch (e) {
+      // Invalid regex, fall back to literal search
+    }
+  }
+
+  function walk(dir) {
+    if (results.length >= maxResults) return;
+
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const entry of entries) {
+      if (results.length >= maxResults) return;
+
+      const fullPath = path.join(dir, entry.name);
+
+      if (entry.isDirectory()) {
+        if (!IGNORE_DIRS.has(entry.name) && !entry.name.startsWith('.')) {
+          walk(fullPath);
+        }
+        continue;
+      }
+
+      if (!entry.isFile()) continue;
+
+      const ext = entry.name.split('.').pop().toLowerCase();
+      if (BINARY_EXTS.has(ext)) continue;
+
+      // Skip large files (> 1MB)
+      try {
+        const stat = fs.statSync(fullPath);
+        if (stat.size > 1024 * 1024) continue;
+      } catch { continue; }
+
+      // Read and search
+      try {
+        const content = fs.readFileSync(fullPath, 'utf-8');
+        const lines = content.split('\n');
+
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          let match = false;
+
+          if (regex) {
+            regex.lastIndex = 0;
+            match = regex.test(line);
+          } else {
+            match = line.toLowerCase().includes(lowerQuery);
+          }
+
+          if (match) {
+            results.push({
+              file: fullPath,
+              name: entry.name,
+              line: i + 1,
+              text: line.trim().substring(0, 200),
+              relativePath: fullPath.replace(dirPath, '').replace(/^\//, ''),
+            });
+            break; // One result per file (show more on expand)
+          }
+        }
+      } catch {
+        // Skip files that can't be read
+      }
+    }
+  }
+
+  walk(dirPath);
+  return results;
+}
+
+ipcMain.handle('search:files', async (event, dirPath, query) => {
+  if (!dirPath || !query || query.length < 2) return [];
+  try {
+    return searchInDir(dirPath, query);
+  } catch (err) {
+    return [{ error: err.message }];
+  }
+});
+
+// ─── Hermes Bridge (persistent AI agent) ───
+let bridgeProcess = null;
+const BRIDGE_PORT = 48123;
+const BRIDGE_URL = `http://127.0.0.1:${BRIDGE_PORT}`;
+
+function startBridge() {
+  const bridgeScript = path.join(__dirname, 'hermes-bridge.py');
+  // Use Hermes venv Python (has all dependencies)
+  const hermesVenvPython = path.join(os.homedir(), '.hermes', 'hermes-agent', 'venv', 'bin', 'python');
+  const python = fs.existsSync(hermesVenvPython) ? hermesVenvPython : (process.env.HERMES_PYTHON || 'python3');
+
+  bridgeProcess = spawn(python, [bridgeScript, String(BRIDGE_PORT)], {
+    stdio: ['pipe', 'pipe', 'pipe'],
+    env: {
+      ...process.env,
+      PYTHONPATH: process.env.PYTHONPATH || '',
+      TERM: 'dumb',
+    }
+  });
+
+  bridgeProcess.stdout.on('data', (data) => {
+    const msg = data.toString().trim();
+    if (msg) console.log('[Bridge]', msg);
+  });
+
+  bridgeProcess.stderr.on('data', (data) => {
+    const msg = data.toString().trim();
+    if (msg) console.error('[Bridge Error]', msg);
+  });
+
+  bridgeProcess.on('close', (code) => {
+    console.log(`[Bridge] Process exited with code ${code}`);
+    bridgeProcess = null;
+  });
+
+  bridgeProcess.on('error', (err) => {
+    console.error('[Bridge] Failed to start:', err.message);
+  });
+}
+
+function stopBridge() {
+  if (bridgeProcess) {
+    bridgeProcess.kill('SIGTERM');
+    bridgeProcess = null;
+  }
+}
+
+async function bridgeRequest(endpoint, method = 'GET', body = null) {
+  const url = `${BRIDGE_URL}${endpoint}`;
+  const options = {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+  };
+  if (body) options.body = JSON.stringify(body);
+
+  const response = await fetch(url, options);
+  return response.json();
+}
+
+ipcMain.handle('hermes:chat', async (event, message) => {
+  try {
+    const result = await bridgeRequest('/chat', 'POST', { message });
+    if (result.error) {
+      return `Erro: ${result.error}`;
+    }
+    return result.response || 'Sem resposta';
+  } catch (err) {
+    return `Erro ao conectar com Hermes: ${err.message}\nO bridge está rodando?`;
+  }
+});
+
+ipcMain.handle('hermes:health', async () => {
+  try {
+    return await bridgeRequest('/health');
+  } catch {
+    return { status: 'offline' };
+  }
+});
+
+ipcMain.handle('hermes:history', async () => {
+  try {
+    return await bridgeRequest('/history');
+  } catch {
+    return { messages: [] };
+  }
+});
+
+ipcMain.handle('hermes:reset', async () => {
+  try {
+    return await bridgeRequest('/reset', 'POST');
+  } catch {
+    return { error: 'offline' };
+  }
+});
+
+ipcMain.handle('window:close', () => {
+  if (mainWindow) mainWindow.hide();
+  isVisible = false;
+});
+
+ipcMain.handle('window:minimize', () => {
+  if (mainWindow) mainWindow.minimize();
+});
+
+ipcMain.handle('window:maximize', () => {
+  if (mainWindow) {
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize();
+    } else {
+      mainWindow.maximize();
+    }
+  }
+});
+
+// ─── Terminal PTY ───
+let ptyProcess = null;
+
+ipcMain.handle('terminal:create', async (event, options = {}) => {
+  const shell = process.env.SHELL || '/bin/zsh';
+  const cwd = options.cwd || os.homedir();
+
+  ptyProcess = pty.spawn(shell, [], {
+    name: 'xterm-256color',
+    cols: options.cols || 80,
+    rows: options.rows || 24,
+    cwd: cwd,
+    env: { ...process.env, TERM: 'xterm-256color' }
+  });
+
+  ptyProcess.onData((data) => {
+    if (mainWindow) {
+      mainWindow.webContents.send('terminal:data', data);
+    }
+  });
+
+  ptyProcess.onExit(({ exitCode }) => {
+    if (mainWindow) {
+      mainWindow.webContents.send('terminal:exit', exitCode);
+    }
+    ptyProcess = null;
+  });
+
+  return { success: true, pid: ptyProcess.pid };
+});
+
+ipcMain.handle('terminal:write', async (event, data) => {
+  if (ptyProcess) {
+    ptyProcess.write(data);
+  }
+});
+
+ipcMain.handle('terminal:resize', async (event, cols, rows) => {
+  if (ptyProcess) {
+    ptyProcess.resize(cols, rows);
+  }
+});
+
+ipcMain.handle('terminal:kill', async () => {
+  if (ptyProcess) {
+    ptyProcess.kill();
+    ptyProcess = null;
+  }
+});
+
+// ─── App lifecycle ───
+
+app.whenReady().then(() => {
+  // Hide dock icon — menu bar only app
+  if (app.dock) app.dock.hide();
+
+  // Start the Hermes bridge (persistent AI agent)
+  startBridge();
+
+  createTray();
+  createWindow();
+
+  // Register global shortcut Shift+Space
+  const registered = globalShortcut.register('Shift+Space', () => {
+    toggleWindow();
+  });
+
+  if (!registered) {
+    console.log('Failed to register Shift+Space shortcut');
+  }
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
+});
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
+  stopBridge();
+});
+
+app.on('window-all-closed', () => {
+  // Don't quit — keep running in tray
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});

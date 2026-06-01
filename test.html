@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test</title></head>
+<body>
+  <h1>Test: Open Folder</h1>
+  <button onclick="testOpen()" style="font-size: 20px; padding: 20px;">📂 Abrir Pasta</button>
+  <p id="status">Status: aguardando clique...</p>
+  <script>
+    document.getElementById('status').textContent = 'Script carregado! Pronto para clicar.';
+    
+    async function testOpen() {
+      document.getElementById('status').textContent = 'Clique detectado! Chamando dialog...';
+      console.log('[TEST] Button clicked!');
+      try {
+        const result = await window.hermesIDE.dialog.openFolder();
+        document.getElementById('status').textContent = 'Dialog retornou: ' + JSON.stringify(result);
+        console.log('[TEST] Result:', result);
+      } catch(err) {
+        document.getElementById('status').textContent = 'ERRO: ' + err.message;
+        console.error('[TEST] Error:', err);
+      }
+    }
+
+    // Check if hermesIDE is available
+    if (window.hermesIDE) {
+      console.log('[TEST] hermesIDE available!');
+    } else {
+      console.error('[TEST] hermesIDE NOT available!');
+      document.getElementById('status').textContent = 'ERRO: hermesIDE não disponível!';
+    }
+  </script>
+</body>
+</html>

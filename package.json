@@ -1,0 +1,31 @@
+{
+  "name": "hermes-ide",
+  "version": "1.0.0",
+  "description": "Hermes IDE — A native macOS menu bar IDE powered by Hermes Agent",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "keywords": [
+    "hermes",
+    "ide",
+    "editor",
+    "ai"
+  ],
+  "author": "pastorello",
+  "license": "MIT",
+  "dependencies": {
+    "chokidar": "^4.0.0",
+    "electron": "^33.0.0",
+    "emmet": "^2.4.11",
+    "lucide": "^1.17.0",
+    "material-icons": "^1.13.14",
+    "node-pty": "^1.1.0",
+    "xterm": "^5.3.0",
+    "xterm-addon-fit": "^0.8.0"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0"
+  }
+}
