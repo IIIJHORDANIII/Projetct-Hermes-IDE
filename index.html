@@ -22,9 +22,9 @@
 
     :root {
       /* macOS Tahoe Dark — vibrancy-ready */
-      --bg: rgba(26,26,30,0.75);
-      --bg-secondary: rgba(30,30,34,0.7);
-      --bg-tertiary: rgba(44,44,48,0.6);
+      --bg: rgba(26,26,30,0.15);
+      --bg-secondary: rgba(30,30,34,0.12);
+      --bg-tertiary: rgba(44,44,48,0.1);
       --bg-hover: rgba(255,255,255,0.06);
       --bg-active: rgba(255,255,255,0.1);
       --border: rgba(255,255,255,0.08);
@@ -61,9 +61,9 @@
     }
 
     .theme-light {
-      --bg: rgba(245,245,247,0.75);
-      --bg-secondary: rgba(245,245,247,0.7);
-      --bg-tertiary: rgba(230,230,232,0.6);
+      --bg: rgba(245,245,247,0.15);
+      --bg-secondary: rgba(245,245,247,0.12);
+      --bg-tertiary: rgba(230,230,232,0.1);
       --bg-hover: rgba(0,0,0,0.04);
       --bg-active: rgba(0,0,0,0.08);
       --border: rgba(0,0,0,0.08);
@@ -491,6 +491,8 @@
       transition: all 0.15s;
     }
     .git-action-btn:hover { background: var(--bg-hover); color: var(--text); border-color: var(--border-strong); }
+    .git-action-push { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .git-action-push:hover { background: var(--accent-hover, #e0342a); border-color: var(--accent-hover, #e0342a); color: #fff; }
 
     .git-commit-area {
       padding: 8px 12px; display: flex; flex-direction: column; gap: 6px;
@@ -617,6 +619,24 @@
     .breadcrumb-sep { color: var(--text-dim); margin: 0 1px; }
     #editor { width: 100%; flex: 1; }
 
+    /* Monaco transparency for vibrancy */
+    .monaco-editor,
+    .monaco-editor .margin,
+    .monaco-editor-background,
+    .monaco-editor .inputarea,
+    .monaco-editor .minimap,
+    .monaco-editor .scroll-decoration,
+    .monaco-editor .sticky-widget,
+    .monaco-editor .overflow-guard,
+    .monaco-editor .editor-scrollable,
+    .monaco-editor .lines-content {
+      background: transparent !important;
+    }
+    /* Monaco scrollbar transparent */
+    .monaco-editor .scrollbar .slider {
+      background: rgba(128,128,128,0.3) !important;
+    }
+
     /* ─── Terminal Panel ─── */
     .terminal-panel {
       height: var(--terminal-height);
@@ -631,7 +651,7 @@
 
     .terminal-header {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 6px 12px; background: var(--bg-tertiary);
+      padding: 4px 12px; background: transparent;
       border-bottom: 1px solid var(--border); flex-shrink: 0;
     }
 
@@ -684,8 +704,12 @@
     #terminal-container .xterm,
     #terminal-container .xterm .xterm-viewport,
     #terminal-container .xterm-screen,
-    #terminal-container .xterm .xterm-scroll-area {
+    #terminal-container .xterm .xterm-scroll-area,
+    #terminal-container .xterm canvas,
+    #terminal-container .xterm .xterm-rows,
+    #terminal-container .xterm .xterm-helper-textarea {
       background: transparent !important;
+      background-color: transparent !important;
     }
 
     /* ─── Welcome ─── */
@@ -1008,13 +1032,12 @@
         </div>
       </div>
 
-      <!-- Branch selector + Push/Pull -->
+      <!-- Branch selector + Push -->
       <div class="git-branch-bar" id="git-branch-bar">
         <span class="mi-bar" data-icon="git-branch" style="width:14px;height:14px"></span>
         <select id="git-branch-select" onchange="gitCheckout(this.value)" class="git-branch-select"></select>
         <div class="git-branch-actions">
-          <button title="Pull" onclick="gitPull()" class="git-action-btn"><span class="mi-bar" data-icon="arrow-down" style="width:14px;height:14px"></span></button>
-          <button title="Push" onclick="gitPush()" class="git-action-btn"><span class="mi-bar" data-icon="arrow-up" style="width:14px;height:14px"></span></button>
+          <button title="Push" onclick="gitPush()" class="git-action-btn git-action-push"><span class="mi-bar" data-icon="arrow-up" style="width:14px;height:14px"></span></button>
         </div>
       </div>
 
@@ -1210,9 +1233,9 @@
             { token: 'type', foreground: '0a84ff' },
           ],
           colors: {
-            'editor.background': '#1a1a1e',
+            'editor.background': '#1a1a1ee6',
             'editor.foreground': '#e5e5e7',
-            'editor.lineHighlightBackground': '#222226',
+            'editor.lineHighlightBackground': '#222226b0',
             'editor.selectionBackground': '#ff3b3040',
             'editorCursor.foreground': '#ff3b30',
             'editorLineNumber.foreground': '#48484a',
@@ -1233,9 +1256,9 @@
             { token: 'type', foreground: '007aff' },
           ],
           colors: {
-            'editor.background': '#ffffff',
+            'editor.background': '#f5f5f7e6',
             'editor.foreground': '#1d1d1f',
-            'editor.lineHighlightBackground': '#f5f5f7',
+            'editor.lineHighlightBackground': '#f5f5f7b0',
             'editor.selectionBackground': '#ff3b3020',
             'editorCursor.foreground': '#ff3b30',
             'editorLineNumber.foreground': '#c7c7cc',
@@ -1276,6 +1299,15 @@
           if (!trySnippetExpand(monacoEditor) && !tryEmmetExpand(monacoEditor)) {
             monacoEditor.trigger('keyboard', 'editor.action.indentLines');
           }
+        });
+
+        // Force Monaco transparency for vibrancy
+        requestAnimationFrame(() => {
+          const ed = document.getElementById('editor');
+          ed.querySelectorAll('.monaco-editor, .monaco-editor-background, .monaco-editor .margin, .overflow-guard, .editor-scrollable').forEach(el => {
+            el.style.background = 'transparent';
+            el.style.backgroundColor = 'transparent';
+          });
         });
 
         monacoEditor.onDidChangeCursorPosition((e) => {
@@ -1730,6 +1762,7 @@
     function getTermTheme() {
       if (settings.theme === 'light') {
         return {
+          background: 'transparent',
           foreground: '#1d1d1f', cursor: '#ff3b30',
           cursorAccent: '#ffffff', selectionBackground: '#ff3b3020',
           black: '#1d1d1f', red: '#ff3b30', green: '#28a745', yellow: '#9a6700',
@@ -1740,6 +1773,7 @@
         };
       }
       return {
+        background: 'transparent',
         foreground: '#e5e5e7', cursor: '#ff3b30',
         cursorAccent: '#1a1a1e', selectionBackground: '#ff3b3040',
         black: '#1a1a1e', red: '#ff3b30', green: '#30d158', yellow: '#ffd60a',
@@ -1810,6 +1844,24 @@
 
       // Terminal -> PTY
       xterm.onData((data) => hermesIDE.terminal.write(id, data));
+
+      // Intercept Cmd+J so xterm doesn't swallow the terminal toggle
+      xterm.attachCustomKeyEventHandler((e) => {
+        if (e.metaKey && e.key === 'j' && e.type === 'keydown') {
+          e.stopPropagation();
+          toggleTerminal();
+          return false;
+        }
+        return true;
+      });
+
+      // Force transparent background for vibrancy
+      requestAnimationFrame(() => {
+        const el = termDiv.querySelector('.xterm-viewport');
+        if (el) el.style.backgroundColor = 'transparent';
+        const screen = termDiv.querySelector('.xterm-screen');
+        if (screen) screen.style.backgroundColor = 'transparent';
+      });
 
       // Resize
       xterm.onResize(({ cols, rows }) => hermesIDE.terminal.resize(id, cols, rows));
@@ -2588,6 +2640,26 @@
 
     // Load settings on startup
     loadSettings();
+
+    // ═══════════════════════════════════════
+    //  VIBRANCY ENFORCER — MutationObserver
+    // ═══════════════════════════════════════
+    function forceVibrancy() {
+      // Monaco
+      document.querySelectorAll('#editor .monaco-editor, #editor .monaco-editor-background, #editor .margin, #editor .overflow-guard, #editor .editor-scrollable, #editor .lines-content').forEach(el => {
+        el.style.background = 'transparent';
+        el.style.backgroundColor = 'transparent';
+      });
+      // xterm
+      document.querySelectorAll('#terminal-container .xterm-viewport, #terminal-container .xterm-screen, #terminal-container .xterm-rows').forEach(el => {
+        el.style.backgroundColor = 'transparent';
+      });
+    }
+    // Run on DOM changes
+    const vibrancyObserver = new MutationObserver(() => forceVibrancy());
+    vibrancyObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class'] });
+    // Also run periodically for Monaco's internal updates
+    setInterval(forceVibrancy, 2000);
 
     // ═══════════════════════════════════════
     //  GIT INTEGRATION

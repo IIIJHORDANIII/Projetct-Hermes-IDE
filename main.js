@@ -29,7 +29,7 @@ function createWindow() {
     y: Math.round((screenH - WINDOW_HEIGHT) / 2),
     show: false,
     titleBarStyle: 'hiddenInset',
-    vibrancy: 'hud',
+    vibrancy: 'sidebar',
     visualEffectState: 'active',
     transparent: true,
     backgroundColor: '#00000000',
