@@ -67,5 +67,7 @@ contextBridge.exposeInMainWorld('hermesIDE', {
     log: (cwd, count) => ipcRenderer.invoke('git:log', cwd, count),
     branches: (cwd) => ipcRenderer.invoke('git:branches', cwd),
     checkout: (cwd, branch) => ipcRenderer.invoke('git:checkout', cwd, branch),
+    push: (cwd) => ipcRenderer.invoke('git:push', cwd),
+    pull: (cwd) => ipcRenderer.invoke('git:pull', cwd),
   }
 });

@@ -463,6 +463,18 @@ ipcMain.handle('git:checkout', async (event, cwd, branch) => {
   return { success: true };
 });
 
+ipcMain.handle('git:push', async (event, cwd) => {
+  const r = await gitExec('push', cwd);
+  if (r.error) return { error: r.stderr || r.error };
+  return { success: true, output: r.stdout };
+});
+
+ipcMain.handle('git:pull', async (event, cwd) => {
+  const r = await gitExec('pull', cwd);
+  if (r.error) return { error: r.stderr || r.error };
+  return { success: true, output: r.stdout };
+});
+
 // ─── Hermes Bridge (persistent AI agent) ───
 let bridgeProcess = null;
 const BRIDGE_PORT = 48123;
