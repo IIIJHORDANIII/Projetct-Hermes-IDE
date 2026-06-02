@@ -493,12 +493,6 @@ function startBridge() {
   const hermesVenvPython = path.join(os.homedir(), '.hermes', 'hermes-agent', 'venv', 'bin', 'python');
   const python = fs.existsSync(hermesVenvPython) ? hermesVenvPython : (process.env.HERMES_PYTHON || 'python3');
 
-  console.log('[Bridge] isPackaged:', isPackaged);
-  console.log('[Bridge] bridgeScript:', bridgeScript);
-  console.log('[Bridge] bridgeScript exists:', fs.existsSync(bridgeScript));
-  console.log('[Bridge] python:', python);
-  console.log('[Bridge] python exists:', fs.existsSync(python));
-
   bridgeProcess = spawn(python, [bridgeScript, String(BRIDGE_PORT)], {
     stdio: ['pipe', 'pipe', 'pipe'],
     env: {
