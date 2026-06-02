@@ -5,7 +5,9 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dev": "electron . --dev"
+    "dev": "electron . --dev",
+    "build": "electron-builder --mac",
+    "build:dmg": "electron-builder --mac dmg"
   },
   "keywords": [
     "hermes",
@@ -15,9 +17,37 @@
   ],
   "author": "pastorello",
   "license": "MIT",
+  "build": {
+    "appId": "com.hermes.ide",
+    "productName": "Hermes IDE",
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "assets/icon.png",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["arm64"]
+        }
+      ]
+    },
+    "dmg": {
+      "title": "Hermes IDE",
+      "contents": [
+        { "x": 130, "y": 220 },
+        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+      ]
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "hermes-bridge.py",
+      "assets/**/*",
+      "node_modules/**/*"
+    ]
+  },
   "dependencies": {
     "chokidar": "^4.0.0",
-    "electron": "^33.0.0",
     "emmet": "^2.4.11",
     "lucide": "^1.17.0",
     "material-icons": "^1.13.14",
@@ -27,6 +57,7 @@
     "xterm-addon-webgl": "^0.16.0"
   },
   "devDependencies": {
-    "electron": "^33.0.0"
+    "electron": "^33.0.0",
+    "electron-builder": "^26.8.1"
   }
 }

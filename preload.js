@@ -52,6 +52,7 @@ contextBridge.exposeInMainWorld('hermesIDE', {
     close: () => ipcRenderer.invoke('window:close'),
     minimize: () => ipcRenderer.invoke('window:minimize'),
     maximize: () => ipcRenderer.invoke('window:maximize'),
+    getSystemTheme: () => ipcRenderer.invoke('system:theme'),
   },
 
   // Git

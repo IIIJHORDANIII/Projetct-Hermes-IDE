@@ -2594,19 +2594,27 @@
       wordWrap: false,
       minimap: true,
       lineNumbers: 'on',
-      theme: 'dark',
+      theme: 'system',
       terminalFontSize: 14,
       autoSave: true,
     };
 
     let settings = { ...defaultSettings };
 
-    function loadSettings() {
-      try {
-        const saved = localStorage.getItem('hermesIDE_settings');
-        if (saved) settings = { ...defaultSettings, ...JSON.parse(saved) };
-      } catch {}
-      // Apply settings to editor/terminal (no UI update — controls may not exist yet)
+    async function loadSettings() {
+      const saved = localStorage.getItem('hermesIDE_settings');
+      if (saved) {
+        settings = { ...defaultSettings, ...JSON.parse(saved) };
+      } else {
+        // No saved settings — detect system theme
+        try {
+          const sysTheme = await hermesIDE.window.getSystemTheme();
+          settings = { ...defaultSettings, theme: sysTheme };
+        } catch {
+          settings = { ...defaultSettings };
+        }
+      }
+      // Apply settings to editor/terminal
       for (const [key, value] of Object.entries(settings)) {
         applySetting(key, value, false);
       }
@@ -2649,15 +2657,21 @@
         }
       }
       if (key === 'theme') {
-        document.body.classList.toggle('theme-light', value === 'light');
-        document.body.classList.toggle('theme-dark', value === 'dark');
-        if (monacoEditor) {
-          monaco.editor.setTheme(value === 'light' ? 'hermes-light' : 'hermes-dark');
-        }
-        // Update terminal themes
-        const newTermTheme = getTermTheme();
-        for (const [, t] of terminals) {
-          t.xterm.options.theme = newTermTheme;
+        const applyTheme = (resolvedTheme) => {
+          document.body.classList.toggle('theme-light', resolvedTheme === 'light');
+          document.body.classList.toggle('theme-dark', resolvedTheme === 'dark');
+          if (monacoEditor) {
+            monaco.editor.setTheme(resolvedTheme === 'light' ? 'hermes-light' : 'hermes-dark');
+          }
+          const newTermTheme = getTermTheme();
+          for (const [, t] of terminals) {
+            t.xterm.options.theme = newTermTheme;
+          }
+        };
+        if (value === 'system') {
+          hermesIDE.window.getSystemTheme().then(sysTheme => applyTheme(sysTheme));
+        } else {
+          applyTheme(value);
         }
       }
       // Show toast feedback
@@ -2709,7 +2723,7 @@
     setTimeout(initIcons, 500);
 
     // Load settings on startup
-    loadSettings();
+    loadSettings().then(() => updateSettingsUI());
 
     // ═══════════════════════════════════════
     //  VIBRANCY ENFORCER — MutationObserver
@@ -3219,6 +3233,7 @@
           <div class="settings-row">
             <label>Theme</label>
             <select id="setting-theme" onchange="applySetting('theme', this.value)">
+              <option value="system">System</option>
               <option value="dark">Dark</option>
               <option value="light">Light</option>
             </select>

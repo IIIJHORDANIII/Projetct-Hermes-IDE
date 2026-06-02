@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, dialog, screen } = require('electron');
+const { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, dialog, screen, nativeTheme } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -632,6 +632,11 @@ ipcMain.handle('window:maximize', () => {
       mainWindow.maximize();
     }
   }
+});
+
+// ─── System Theme ───
+ipcMain.handle('system:theme', () => {
+  return nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
 });
 
 // ─── Terminal PTY ───
