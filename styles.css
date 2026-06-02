@@ -663,10 +663,8 @@
       border-top: 1px solid var(--border);
       display: flex; flex-direction: column; flex-shrink: 0;
       position: relative;
-      filter: brightness(0.93);
     }
     .theme-dark .terminal-panel {
-      filter: brightness(1);
       background: rgba(20,20,24,0.45);
       backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
     }
@@ -732,9 +730,6 @@
     #terminal-container .xterm canvas {
       background: transparent !important;
       background-color: transparent !important;
-    }
-    #terminal-container .xterm canvas {
-      mix-blend-mode: multiply;
     }
 
     /* ─── Welcome ─── */

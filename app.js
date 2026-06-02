@@ -600,6 +600,13 @@
       };
     }
 
+    function applyTerminalTheme() {
+      const newTermTheme = getTermTheme();
+      for (const [, t] of terminals) {
+        t.xterm.options.theme = newTermTheme;
+      }
+    }
+
     function toggleTerminal() {
       const panel = document.getElementById('terminal-panel');
       const isCollapsed = panel.classList.contains('collapsed');
@@ -632,11 +639,20 @@
         rendererType: 'dom',
       });
 
+      // FitAddon for proper line wrapping
+      const fitAddon = new FitAddon.FitAddon();
+      xterm.loadAddon(fitAddon);
+
       // Create container div for this terminal
       const termDiv = document.createElement('div');
       termDiv.style.cssText = 'width:100%;height:100%;display:none;';
       container.appendChild(termDiv);
       xterm.open(termDiv);
+
+      // Fit terminal to container
+      requestAnimationFrame(() => {
+        try { fitAddon.fit(); } catch(e) {}
+      });
 
       // Force dark mode background on xterm elements
       if (settings.theme === 'dark') {
@@ -652,8 +668,8 @@
       }
 
       // Calculate size
-      const cols = Math.floor(container.clientWidth / (xterm._core._renderService?.dimensions?.css?.cell?.width || 9)) || 80;
-      const rows = Math.floor(container.clientHeight / (xterm._core._renderService?.dimensions?.css?.cell?.height || 17)) || 20;
+      const cols = xterm.cols || 80;
+      const rows = xterm.rows || 20;
 
       // Create PTY
       const result = await hermesIDE.terminal.create({
@@ -663,7 +679,7 @@
       if (!result.success) return;
 
       const id = result.id;
-      terminals.set(id, { xterm, containerEl: termDiv });
+      terminals.set(id, { xterm, containerEl: termDiv, fitAddon });
 
       // PTY -> Terminal
       hermesIDE.terminal.onData(({ id: msgId, data }) => {
@@ -692,6 +708,16 @@
         if (screen) screen.style.backgroundColor = 'transparent';
       });
 
+      // Resize on container size change
+      const resizeObserver = new ResizeObserver(() => {
+        try {
+          if (termDiv.style.display !== 'none') {
+            fitAddon.fit();
+          }
+        } catch(e) {}
+      });
+      resizeObserver.observe(container);
+
       // Resize
       xterm.onResize(({ cols, rows }) => hermesIDE.terminal.resize(id, cols, rows));
 
@@ -715,7 +741,12 @@
       }
       activeTerminalId = id;
       const t = terminals.get(id);
-      if (t) t.xterm.focus();
+      if (t) {
+        requestAnimationFrame(() => {
+          try { t.fitAddon.fit(); } catch(e) {}
+        });
+        t.xterm.focus();
+      }
       renderTerminalTabs();
     }
 
@@ -1423,10 +1454,7 @@
           if (monacoEditor) {
             monaco.editor.setTheme(resolvedTheme === 'light' ? 'hermes-light' : 'hermes-dark');
           }
-          const newTermTheme = getTermTheme();
-          for (const [, t] of terminals) {
-            t.xterm.options.theme = newTermTheme;
-          }
+          applyTerminalTheme();
         };
         if (value === 'system') {
           hermesIDE.window.getSystemTheme().then(sysTheme => applyTheme(sysTheme));
