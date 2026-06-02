@@ -48,6 +48,9 @@
       "hermes-bridge.py",
       "assets/**/*",
       "node_modules/**/*"
+    ],
+    "asarUnpack": [
+      "hermes-bridge.py"
     ]
   },
   "dependencies": {

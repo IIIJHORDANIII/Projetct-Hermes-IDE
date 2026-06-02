@@ -481,10 +481,23 @@ const BRIDGE_PORT = 48123;
 const BRIDGE_URL = `http://127.0.0.1:${BRIDGE_PORT}`;
 
 function startBridge() {
-  const bridgeScript = path.join(__dirname, 'hermes-bridge.py');
+  // In packaged app, use unpacked path (Python can't execute from inside asar)
+  const isPackaged = __dirname.includes('app.asar');
+  let bridgeScript;
+  if (isPackaged) {
+    bridgeScript = path.join(__dirname.replace('app.asar', 'app.asar.unpacked'), 'hermes-bridge.py');
+  } else {
+    bridgeScript = path.join(__dirname, 'hermes-bridge.py');
+  }
   // Use Hermes venv Python (has all dependencies)
   const hermesVenvPython = path.join(os.homedir(), '.hermes', 'hermes-agent', 'venv', 'bin', 'python');
   const python = fs.existsSync(hermesVenvPython) ? hermesVenvPython : (process.env.HERMES_PYTHON || 'python3');
+
+  console.log('[Bridge] isPackaged:', isPackaged);
+  console.log('[Bridge] bridgeScript:', bridgeScript);
+  console.log('[Bridge] bridgeScript exists:', fs.existsSync(bridgeScript));
+  console.log('[Bridge] python:', python);
+  console.log('[Bridge] python exists:', fs.existsSync(python));
 
   bridgeProcess = spawn(python, [bridgeScript, String(BRIDGE_PORT)], {
     stdio: ['pipe', 'pipe', 'pipe'],
