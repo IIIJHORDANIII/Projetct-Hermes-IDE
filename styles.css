@@ -725,12 +725,6 @@
     #terminal-container .xterm {
       height: 100%;
     }
-    /* Terminal xterm — transparency for vibrancy */
-    #terminal-container .xterm .xterm-viewport,
-    #terminal-container .xterm canvas {
-      background: transparent !important;
-      background-color: transparent !important;
-    }
 
     /* ─── Welcome ─── */
     .welcome {

@@ -564,9 +564,11 @@
     //  TERMINAL (xterm.js + node-pty) — Multi-terminal
     // ═══════════════════════════════════════
     function getTermTheme() {
-      if (settings.theme === 'light') {
+      // Detect actual resolved theme from body class (handles 'system' setting)
+      const isLight = document.body.classList.contains('theme-light');
+      if (isLight) {
         return {
-          background: 'transparent',
+          background: '#f5f5f7',
           foreground: '#1d1d1f', cursor: '#ff3b30',
           cursorAccent: '#ffffff', selectionBackground: '#ff3b3020',
           black: '#1d1d1f', red: '#ff3b30', green: '#28a745', yellow: '#9a6700',
@@ -576,20 +578,8 @@
           brightCyan: '#5ac8fa', brightWhite: '#000000',
         };
       }
-      if (settings.theme === 'dark') {
-        return {
-          background: 'transparent',
-          foreground: '#e5e5e7', cursor: '#ff3b30',
-          cursorAccent: '#1a1a1e', selectionBackground: '#ff3b3040',
-          black: '#1a1a1e', red: '#ff3b30', green: '#30d158', yellow: '#ffd60a',
-          blue: '#0a84ff', magenta: '#bf5af2', cyan: '#64d2ff', white: '#e5e5e7',
-          brightBlack: '#48484a', brightRed: '#ff453a', brightGreen: '#30d158',
-          brightYellow: '#ffd60a', brightBlue: '#0a84ff', brightMagenta: '#bf5af2',
-          brightCyan: '#64d2ff', brightWhite: '#f5f5f7',
-        };
-      }
       return {
-        background: 'transparent',
+        background: '#1a1a1e',
         foreground: '#e5e5e7', cursor: '#ff3b30',
         cursorAccent: '#1a1a1e', selectionBackground: '#ff3b3040',
         black: '#1a1a1e', red: '#ff3b30', green: '#30d158', yellow: '#ffd60a',
@@ -635,8 +625,7 @@
         fontFamily: "'SF Mono', 'Fira Code', 'JetBrains Mono', monospace",
         fontSize: settings.terminalFontSize || 13,
         lineHeight: 1.3, cursorBlink: true, cursorStyle: 'bar',
-        scrollback: 5000, allowTransparency: true,
-        rendererType: 'dom',
+        scrollback: 5000, allowTransparency: false,
       });
 
       // FitAddon for proper line wrapping
@@ -653,19 +642,6 @@
       requestAnimationFrame(() => {
         try { fitAddon.fit(); } catch(e) {}
       });
-
-      // Force dark mode background on xterm elements
-      if (settings.theme === 'dark') {
-        requestAnimationFrame(() => {
-          const viewport = termDiv.querySelector('.xterm-viewport');
-          const screen = termDiv.querySelector('.xterm-screen');
-          const canvases = termDiv.querySelectorAll('canvas');
-          const bg = 'rgba(10,10,14,0.75)';
-          if (viewport) { viewport.style.background = bg; viewport.style.backgroundColor = bg; }
-          if (screen) { screen.style.background = bg; screen.style.backgroundColor = bg; }
-          canvases.forEach(c => { c.style.background = bg; c.style.backgroundColor = bg; });
-        });
-      }
 
       // Calculate size
       const cols = xterm.cols || 80;
@@ -698,14 +674,6 @@
           return false;
         }
         return true;
-      });
-
-      // Force transparent background for vibrancy
-      requestAnimationFrame(() => {
-        const el = termDiv.querySelector('.xterm-viewport');
-        if (el) el.style.backgroundColor = 'transparent';
-        const screen = termDiv.querySelector('.xterm-screen');
-        if (screen) screen.style.backgroundColor = 'transparent';
       });
 
       // Resize on container size change
