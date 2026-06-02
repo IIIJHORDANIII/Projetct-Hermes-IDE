@@ -640,7 +640,7 @@
     /* ─── Terminal Panel ─── */
     .terminal-panel {
       height: var(--terminal-height);
-      background: var(--bg-secondary);
+      background: var(--bg);
       backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
       border-top: 1px solid var(--border);
       display: flex; flex-direction: column; flex-shrink: 0;
@@ -700,16 +700,26 @@
     #terminal-container .xterm {
       height: 100%;
     }
-    /* Let terminal panel background show through xterm */
+    /* Let terminal panel vibrancy show through xterm */
+    #terminal-container,
     #terminal-container .xterm,
     #terminal-container .xterm .xterm-viewport,
     #terminal-container .xterm-screen,
     #terminal-container .xterm .xterm-scroll-area,
     #terminal-container .xterm canvas,
     #terminal-container .xterm .xterm-rows,
-    #terminal-container .xterm .xterm-helper-textarea {
+    #terminal-container .xterm .xterm-rows > div,
+    #terminal-container .xterm .xterm-helper-textarea,
+    #terminal-container .xterm .xterm-selection,
+    #terminal-container .xterm .xterm-cursor-layer,
+    #terminal-container .xterm .xterm-link-layer,
+    #terminal-container .xterm .xterm-decoration-layer {
       background: transparent !important;
       background-color: transparent !important;
+    }
+    /* Force xterm canvas alpha channel */
+    #terminal-container .xterm canvas {
+      mix-blend-mode: normal;
     }
 
     /* ─── Welcome ─── */
