@@ -42,6 +42,9 @@
       "main.js",
       "preload.js",
       "index.html",
+      "styles.css",
+      "app.js",
+      "slash-commands.js",
       "hermes-bridge.py",
       "assets/**/*",
       "node_modules/**/*"
