@@ -687,21 +687,8 @@
     }
     .theme-dark .terminal-panel {
       filter: brightness(1);
-      background: var(--bg);
-      backdrop-filter: blur(30px) saturate(200%); -webkit-backdrop-filter: blur(30px) saturate(200%);
-    }
-    .theme-dark #terminal-container,
-    .theme-dark #terminal-container .xterm,
-    .theme-dark #terminal-container .xterm .xterm-viewport,
-    .theme-dark #terminal-container .xterm-screen,
-    .theme-dark #terminal-container .xterm canvas,
-    .theme-dark #terminal-container .xterm .xterm-rows,
-    .theme-dark #terminal-container .xterm .xterm-rows > div {
-      background: transparent !important;
-      background-color: transparent !important;
-    }
-    .theme-dark #terminal-container .xterm canvas {
-      mix-blend-mode: screen;
+      background: rgba(20,20,24,0.45);
+      backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
     }
     .theme-dark .editor-container {
       filter: brightness(1);
@@ -760,25 +747,12 @@
     #terminal-container .xterm {
       height: 100%;
     }
-    /* Let terminal panel vibrancy show through xterm */
-    #terminal-container,
-    #terminal-container .xterm,
+    /* Terminal xterm — transparency for vibrancy */
     #terminal-container .xterm .xterm-viewport,
-    #terminal-container .xterm-screen,
-    #terminal-container .xterm .xterm-scroll-area,
-    #terminal-container .xterm canvas,
-    #terminal-container .xterm .xterm-rows,
-    #terminal-container .xterm .xterm-rows > div,
-    #terminal-container .xterm .xterm-helper-textarea,
-    #terminal-container .xterm .xterm-selection,
-    #terminal-container .xterm .xterm-cursor-layer,
-    #terminal-container .xterm .xterm-link-layer,
-    #terminal-container .xterm .xterm-decoration-layer {
+    #terminal-container .xterm canvas {
       background: transparent !important;
       background-color: transparent !important;
     }
-    /* Terminal text readability — panel bg handles contrast */
-    /* Force xterm canvas to blend with vibrancy */
     #terminal-container .xterm canvas {
       mix-blend-mode: multiply;
     }
@@ -1842,6 +1816,18 @@
           brightCyan: '#5ac8fa', brightWhite: '#000000',
         };
       }
+      if (settings.theme === 'dark') {
+        return {
+          background: 'transparent',
+          foreground: '#e5e5e7', cursor: '#ff3b30',
+          cursorAccent: '#1a1a1e', selectionBackground: '#ff3b3040',
+          black: '#1a1a1e', red: '#ff3b30', green: '#30d158', yellow: '#ffd60a',
+          blue: '#0a84ff', magenta: '#bf5af2', cyan: '#64d2ff', white: '#e5e5e7',
+          brightBlack: '#48484a', brightRed: '#ff453a', brightGreen: '#30d158',
+          brightYellow: '#ffd60a', brightBlue: '#0a84ff', brightMagenta: '#bf5af2',
+          brightCyan: '#64d2ff', brightWhite: '#f5f5f7',
+        };
+      }
       return {
         background: 'transparent',
         foreground: '#e5e5e7', cursor: '#ff3b30',
@@ -1891,6 +1877,19 @@
       termDiv.style.cssText = 'width:100%;height:100%;display:none;';
       container.appendChild(termDiv);
       xterm.open(termDiv);
+
+      // Force dark mode background on xterm elements
+      if (settings.theme === 'dark') {
+        requestAnimationFrame(() => {
+          const viewport = termDiv.querySelector('.xterm-viewport');
+          const screen = termDiv.querySelector('.xterm-screen');
+          const canvases = termDiv.querySelectorAll('canvas');
+          const bg = 'rgba(10,10,14,0.75)';
+          if (viewport) { viewport.style.background = bg; viewport.style.backgroundColor = bg; }
+          if (screen) { screen.style.background = bg; screen.style.backgroundColor = bg; }
+          canvases.forEach(c => { c.style.background = bg; c.style.backgroundColor = bg; });
+        });
+      }
 
       // Calculate size
       const cols = Math.floor(container.clientWidth / (xterm._core._renderService?.dimensions?.css?.cell?.width || 9)) || 80;
