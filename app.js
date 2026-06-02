@@ -851,15 +851,14 @@
       sendBtn.disabled = true;
 
       try {
-        // Build context (skip for slash commands)
+        // Build lightweight context (skip for slash commands)
         const isCommand = message.startsWith('/');
         let ctx = '';
         if (!isCommand) {
           if (activeFile && monacoEditor) {
-            const content = monacoEditor.getValue();
             const name = openFiles.get(activeFile)?.name || 'unknown';
-            const lang = getLanguage(name);
-            ctx = `[Context: editing ${name}]\n\`\`\`${lang}\n${content}\n\`\`\`\n\n`;
+            const lineCount = monacoEditor.getModel()?.getLineCount() || 0;
+            ctx = `[User is editing: ${name} (${lineCount} lines) — ${activeFile}]\n\n`;
           }
           if (currentFolder) {
             ctx += `[Working directory: ${currentFolder}]\n\n`;

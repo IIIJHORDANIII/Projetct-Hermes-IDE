@@ -1,6 +1,6 @@
 {
   "name": "hermes-ide",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Hermes IDE — A native macOS menu bar IDE powered by Hermes Agent",
   "main": "main.js",
   "scripts": {
